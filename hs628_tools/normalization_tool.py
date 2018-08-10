@@ -1,67 +1,70 @@
 import numpy as np
-import sklearn as sk
 from sklearn import preprocessing
 
 
 class NormCheck:
-    def __init__(self, alldata, cutoff=0.3, alldata1=None):
-        self.alldata = alldata
+    def __init__(self, dataset, cutoff=0.3):
+        self.dataset = dataset
         self.cutoff = cutoff
-        self.alldata1 = alldata1
+        self.mean_ratio = None
+        self.range_ratio = None
 
-    def find_percent_diff(self):
-        """ 
-        This function takes the data as a numpy.ndarray. It calculates mean for each column.
-        It further processes this data to return the percentage difference.
+    def find_mean_ratio(self):
         """
-        rowwise_missing_entries = len(alldata) - np.sum(alldata == alldata, axis=0)
-        data_nocategory_columns = rowwise_missing_entries < len(alldata)
-        self.alldata1 = alldata[:, data_nocategory_columns]
-        allmean = self.alldata1.mean(axis=0)
-        allmeanmin = allmean.min()
-        allmeanmax = allmean.max()
-        percent_diff = allmeanmin * 100 / float(allmeanmax)
-        return percent_diff
-
-    def get_input(self, percent_diff):
+        takes dataset as nd.array as an input from user and then it will calculate mean of each columns and
+        return mean_ratio.
         """
-        This function presents user to provide an input, if it determines that data will benefit from normalization.
-        The user input gives choice to user if they want to proceed with normalization or not.
-        If data does not need normalization, the function returns with an informative message reflecting the same.
-        """
-        if percent_diff < self.cutoff:
-            rescale = raw_input ("This dataset should be normalized. Do you want to proceed with normalization?"+"\n"+"YES/NO"+"\n")
-            return rescale
+        mean = self.dataset.mean(axis=0)
+        meanmin = mean.min()
+        meanmax = mean.max()
+        if meanmax != 0:
+            self.mean_ratio = meanmin * 100 / float(meanmax)
         else:
-            return "This dataset may not need normalization."
+            self.mean_ratio = 1E10
+        return self.mean_ratio
 
-    def compare(self, rescale):
+    def find_range_ratio(self):
         """
-        This function checks if user decided to proceed with normalization, and if so, goes ahead and performs normalization
-        and returns normalized dataset as a numpy.ndarray. Else, it reflects a message that the user has not selected to normalize the dataset,
-        even though the recommendation was provided to the user.
+        takes dataset as nd.array as an input from user and then it will calculate range of each columns and
+        return range_ratio
         """
-        if rescale.upper() == "YES":
-            alldata_normalized = preprocessing.normalize(self.alldata1)
-            alldata_normalized = alldata_normalized
-            return alldata_normalized
+        col_min = self.dataset.min(axis=0)
+        col_max = self.dataset.max(axis=0)
+        col_range = col_max - col_min
+        rangemin = col_range.min()
+        rangemax = col_range.max()
+        if rangemax != 0:
+            self.range_ratio = rangemin * 100 / float(rangemax)
         else:
-            return "You have selected not to normalize your dataset."
+            self.range_ratio = 1E10
+        return self.range_ratio
+
+    def decide_normalization(self):
+        """
+        takes input of mean_ratio and range_ratio, check with the user's input of cutoff or
+        the default value of 0.3.
+        """
+        if self.mean_ratio < self.cutoff:
+            dataset_normalized = preprocessing.normalize(self.dataset)
+            return dataset_normalized
+        else:
+            return None
 
 
 if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
 
-    alldata = np.genfromtxt("College.csv", delimiter=',', skip_header=1)
-    #alldata = np.genfromtxt("heart.csv", delimiter=',', skip_header=1)
-    #alldata = np.genfromtxt("data.csv", delimiter=',', skip_header=1)
-    
-    normalization = NormCheck(alldata,0.25)
-    #normalization = NormCheck(alldata)
-    #normalization = NormCheck(alldata, 0.4)
-    
-    percentage = normalization.find_percent_diff()
-    rescale_input = normalization.get_input(percentage)
-    normalized_data = normalization.compare(rescale_input)
+    data = np.genfromtxt('College.csv', delimiter=',', skip_header=1)
+    rowwise_missing_entries = len(data) - np.sum(data == data, axis=0)
+    data_nocategory_columns = rowwise_missing_entries < len(data)
+    modified_data = data[:, data_nocategory_columns]
+
+    normalization = NormCheck(modified_data, 0.2)
+    # normalization = NormCheck(modified_data, 0.1)
+    # normalization = NormCheck(modified_data)
+
+    mean_ratio = normalization.find_mean_ratio()
+    print mean_ratio
+    range_ratio = normalization.find_range_ratio()
+    print range_ratio
+    normalized_data = normalization.decide_normalization()
     print normalized_data
