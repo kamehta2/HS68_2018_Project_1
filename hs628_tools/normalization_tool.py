@@ -45,8 +45,11 @@ class NormCheck:
         the default value of 0.3.
         """
         if self.mean_ratio < self.cutoff:
-            dataset_normalized = preprocessing.normalize(self.dataset)
-            return dataset_normalized
+            if self.range_ratio < self.cutoff:
+                dataset_normalized = preprocessing.normalize(self.dataset)
+                return dataset_normalized
+            else:
+                return None
         else:
             return None
 
